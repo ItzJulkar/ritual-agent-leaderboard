@@ -3,62 +3,79 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ritual Agent Lookup — Type, Deploy Time &amp; Rank</title>
-  <meta name="description" content="Search any Ritual testnet agent. See its type, exact deployment time, and deployment rank." />
+  <title>Ritual Agent Lookup — Rank, Type &amp; Deploy Time</title>
+  <meta name="description" content="Search any Ritual testnet agent. See its rank, type, and exact deployment time." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E" />
-  <link rel="preconnect" href="https://explorer.ritualfoundation.org" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="bg-glow"></div>
+  <div class="aurora"><div class="aurora-blob b1"></div><div class="aurora-blob b2"></div></div>
 
-  <div class="page">
-    <nav class="nav">
-      <div class="nav-brand">⚡ Ritual Agent Lookup</div>
-      <a href="https://x.com/Web3Julkar" target="_blank" rel="noopener" class="nav-twitter">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-        @Web3Julkar
+  <header class="header">
+    <div class="header-inner">
+      <a href="/" class="brand">
+        <span class="brand-mark">⚡</span>
+        <span class="brand-name">Ritual Agent Lookup</span>
       </a>
-    </nav>
+      <a href="https://x.com/Web3Julkar" target="_blank" rel="noopener" class="header-twitter">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        <span>@Web3Julkar</span>
+      </a>
+    </div>
+  </header>
 
-    <main class="main">
-      <div class="hero">
-        <h1 class="hero-title">Find Your Agent</h1>
-        <p class="hero-sub">Search any Ritual testnet agent — see its type, deployment time, and rank.</p>
-      </div>
+  <main class="main">
+    <section class="hero">
+      <div class="hero-badge">Ritual Testnet · Live</div>
+      <h1 class="hero-title">Find Your Agent's <span class="grad">Rank</span></h1>
+      <p class="hero-sub">Search any agent address to see its type, exact deployment time, and where it ranks among all deployed agents.</p>
+    </section>
 
-      <div class="search-zone">
-        <div class="search-box">
-          <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input type="text" id="searchInput" placeholder="Paste agent address  (0x…)" autocomplete="off" spellcheck="false" />
-          <button id="searchBtn">Search</button>
+    <section class="search-card">
+      <div class="search-row">
+        <div class="search-input-wrap">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="searchInput" placeholder="Enter agent address (0x…)" autocomplete="off" spellcheck="false" />
         </div>
-        <div class="search-meta" id="searchMeta"></div>
+        <button id="pasteBtn" class="btn-paste" title="Paste from clipboard">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+        </button>
+        <button id="searchBtn" class="btn-search">Search</button>
       </div>
+      <div class="search-status" id="searchStatus"></div>
+    </section>
 
-      <div class="progress" id="progress" hidden>
-        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-        <span id="progressText"></span>
+    <section class="result-area" id="result"></section>
+
+    <section class="stats-strip" id="statsStrip" hidden>
+      <div class="stat"><span class="stat-val" id="statTotal">—</span><span class="stat-lbl">Agents</span></div>
+      <div class="stat-div"></div>
+      <div class="stat"><span class="stat-val" id="statSov">—</span><span class="stat-lbl">Sovereign</span></div>
+      <div class="stat-div"></div>
+      <div class="stat"><span class="stat-val" id="statPers">—</span><span class="stat-lbl">Persistent</span></div>
+      <div class="stat-div"></div>
+      <div class="stat"><span class="stat-val" id="statUpdated">—</span><span class="stat-lbl">Updated</span></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <span class="footer-mark">⚡</span>
+        <span>Built by <a href="https://x.com/Web3Julkar" target="_blank" rel="noopener">@Web3Julkar</a></span>
       </div>
-
-      <div class="result-area" id="result"></div>
-
-      <div class="stats-row" id="statsRow" hidden>
-        <div class="stat-pill"><span class="stat-val" id="statTotal">—</span><span class="stat-lbl">Agents Ranked</span></div>
-        <div class="stat-pill"><span class="stat-val" id="statSov">—</span><span class="stat-lbl">Sovereign</span></div>
-        <div class="stat-pill"><span class="stat-val" id="statPers">—</span><span class="stat-lbl">Persistent</span></div>
-        <div class="stat-pill"><span class="stat-val" id="statUpdated">—</span><span class="stat-lbl">Data Updated</span></div>
+      <div class="footer-right">
+        <span>Data: <a href="https://explorer.ritualfoundation.org/api/agents/cache" target="_blank" rel="noopener">Ritual Explorer</a></span>
+        <span class="dot">·</span>
+        <span>Testnet only</span>
+        <span class="dot">·</span>
+        <span>Unofficial</span>
       </div>
-    </main>
-
-    <footer class="footer">
-      <span>Built by <a href="https://x.com/Web3Julkar" target="_blank" rel="noopener">@Web3Julkar</a></span>
-      <span class="footer-sep">·</span>
-      <span>Data: <a href="https://explorer.ritualfoundation.org/api/agents/cache" target="_blank" rel="noopener">Ritual Explorer</a></span>
-      <span class="footer-sep">·</span>
-      <span>Testnet only · Unofficial</span>
-    </footer>
-  </div>
+    </div>
+  </footer>
 
   <script src="app.js"></script>
 </body>
