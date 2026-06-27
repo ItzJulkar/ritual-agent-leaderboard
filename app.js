@@ -72,9 +72,9 @@ async function loadData() {
   $('statPers').textContent = Pers.toLocaleString();
   const ago = Math.round((Date.now() / 1000 - state.deployData.computedAt) / 60);
   $('statUpdated').textContent = ago < 60 ? ago + 'm ago' : Math.round(ago / 60) + 'h ago';
-  $('statsRow').hidden = false;
+  $('statsStrip').hidden = false;
 
-  $('searchMeta').textContent = `${state.deployData.totalAgents.toLocaleString()} agents indexed. Paste any address to begin.`;
+  $('searchStatus').textContent = `${state.deployData.totalAgents.toLocaleString()} agents indexed — ready to search.`;
 }
 
 // -------------- On-demand deploy block (for agents not in pre-computed data) --------------
@@ -148,36 +148,63 @@ function showError(msg) {
 
 function renderResult({ address, type, deployBlock, deployTs, rank, total, inIndex }) {
   const typeClass = inIndex ? `type-${type.toLowerCase()}` : 'type-inactive';
-  const typeLabel = inIndex ? type : type + ' (not in active registry)';
-  const rankLabel = rank ? `of ${total.toLocaleString()}` : '—';
+  const typeLabel = inIndex ? type : type + ' (inactive)';
+  const rankNum = rank ? rank.toLocaleString() : '—';
+  const totalNum = total ? total.toLocaleString() : '—';
 
   $('result').innerHTML = `
     <div class="result-card">
-      <div class="result-top">
-        <div class="result-rank-box">
-          <div class="result-rank-num">${rank ? '#' + rank.toLocaleString() : '—'}</div>
-          <div class="result-rank-lbl">${rankLabel}</div>
+      <div class="result-head">
+        <div class="result-rank">
+          <div class="rank-circle">
+            <div class="rank-num">#${rankNum}</div>
+            <div class="rank-lbl">Rank</div>
+          </div>
+          <div class="rank-text">
+            <div class="rank-text-big">Deployment Rank</div>
+            <div class="rank-text-sub">${rankNum} of ${totalNum} agents</div>
+          </div>
         </div>
-        <div class="result-type-box">
-          <span class="type-badge ${typeClass}">${typeLabel}</span>
-          <div class="result-status">${inIndex ? 'Active agent' : 'Contract exists, not in registry'}</div>
-        </div>
+        <span class="type-pill ${typeClass}">${typeLabel}</span>
       </div>
-      <div class="result-rows">
+      <div class="result-body">
+        <div class="deploy-highlight">
+          <div class="deploy-left">
+            <span class="deploy-label">Deployed At</span>
+            <span class="deploy-time">${fmtTime(deployTs)}</span>
+            <span class="deploy-meta">block #${deployBlock.toLocaleString()}</span>
+          </div>
+          <span class="deploy-ago">${fmtAgo(deployTs) || 'just now'}</span>
+        </div>
         <div class="result-row">
           <span class="result-lbl">Agent Address</span>
-          <span class="result-val"><a href="${CONFIG.EXPLORER}/agents/${address}?type=auto" target="_blank" rel="noopener">${short(address)}</a></span>
+          <span class="result-val mono">
+            <a href="${CONFIG.EXPLORER}/agents/${address}?type=auto" target="_blank" rel="noopener">${short(address)}</a>
+            <button class="copy-btn" data-copy="${address}" title="Copy address">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </span>
         </div>
         <div class="result-row">
-          <span class="result-lbl">Deployed At</span>
-          <span class="result-val">${fmtTime(deployTs)}<span class="sub">block #${deployBlock.toLocaleString()} · ${fmtAgo(deployTs)}</span></span>
-        </div>
-        <div class="result-row">
-          <span class="result-lbl">Deployment Rank</span>
-          <span class="result-val">${rank ? '#' + rank.toLocaleString() + ' / ' + total.toLocaleString() : 'computing…'}</span>
+          <span class="result-lbl">Status</span>
+          <span class="result-val">${inIndex ? 'Active in registry' : 'Contract exists, not in active registry'}</span>
         </div>
       </div>
     </div>`;
+  attachCopyHandlers();
+}
+
+function attachCopyHandlers() {
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.onclick = async (e) => {
+      e.preventDefault(); e.stopPropagation();
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        btn.classList.add('copied');
+        setTimeout(() => btn.classList.remove('copied'), 1500);
+      } catch {}
+    };
+  });
 }
 
 // -------------- Search --------------
@@ -189,7 +216,8 @@ async function search(rawInput) {
   }
 
   $('searchBtn').disabled = true;
-  $('progress').hidden = true;
+  $('searchStatus').textContent = '';
+  $('searchStatus').classList.remove('error');
 
   // 1. Check pre-computed index first (instant)
   const indexed = state.byAddress[address];
@@ -200,6 +228,7 @@ async function search(rawInput) {
       rank: indexed.rank, total: state.deployData.totalAgents,
       inIndex: true,
     });
+    $('searchStatus').textContent = `Found — rank #${indexed.rank.toLocaleString()} of ${state.deployData.totalAgents.toLocaleString()}`;
     $('searchBtn').disabled = false;
     return;
   }
@@ -214,14 +243,10 @@ async function search(rawInput) {
     }
 
     // Binary search deploy block
-    $('progress').hidden = false;
-    $('progressText').textContent = 'Finding deployment block…';
     const deployBlock = await findDeployBlockOnChain(address, (pct) => {
-      $('progressFill').style.width = pct + '%';
-      $('progressText').textContent = `Finding deployment block… ${pct}%`;
+      showLoading(`Finding deployment block… ${pct}%`);
     });
     const deployTs = await getBlockTimestamp(deployBlock);
-    $('progress').hidden = true;
 
     // Estimate rank: count agents in index with earlier deploy block + 1
     let rank = 0;
@@ -229,28 +254,37 @@ async function search(rawInput) {
       if (a.deployBlock < deployBlock) rank++;
     }
     rank += 1;
-    const total = state.deployData.totalAgents + 1; // +1 for this unindexed agent
+    const total = state.deployData.totalAgents + 1;
 
     renderResult({ address, type, deployBlock, deployTs, rank, total, inIndex: false });
+    $('searchStatus').textContent = `Found on-chain — rank #${rank.toLocaleString()}`;
   } catch (e) {
     showError('Lookup failed: ' + e.message);
   } finally {
     $('searchBtn').disabled = false;
-    $('progress').hidden = true;
   }
 }
 
-// -------------- Init --------------
 async function init() {
   $('searchBtn').addEventListener('click', () => search($('searchInput').value));
   $('searchInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') search($('searchInput').value);
   });
+  $('pasteBtn').addEventListener('click', async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        $('searchInput').value = text.trim();
+        search(text);
+      }
+    } catch {}
+  });
 
   try {
     await loadData();
   } catch (e) {
-    $('searchMeta').textContent = 'Could not load data: ' + e.message;
+    $('searchStatus').textContent = 'Could not load data: ' + e.message;
+    $('searchStatus').classList.add('error');
   }
 }
 
