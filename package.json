@@ -1,0 +1,11 @@
+{
+  "name": "ritual-agent-leaderboard",
+  "version": "1.0.0",
+  "description": "Live leaderboard of AI agents deployed on Ritual testnet — ranked by creator, with last block activity and address search.",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve ."
+  },
+  "keywords": ["ritual", "ai-agent", "blockchain", "leaderboard", "testnet"],
+  "license": "MIT"
+}
