@@ -3,39 +3,62 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ritual Agent Search — Type, Deploy Time &amp; Rank</title>
-  <meta name="description" content="Search any Ritual testnet agent by address. See its type, exact deployment time, and rank." />
+  <title>Ritual Agent Lookup — Type, Deploy Time &amp; Rank</title>
+  <meta name="description" content="Search any Ritual testnet agent. See its type, exact deployment time, and deployment rank." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://explorer.ritualfoundation.org" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <h1>⚡ Ritual Agent Search</h1>
-      <p class="subtitle">Search any agent on Ritual testnet — see its type, deployment time, and rank.</p>
-    </header>
+  <div class="bg-glow"></div>
 
-    <div class="search-section">
-      <div class="search-row">
-        <input type="text" id="searchInput" class="search-input" placeholder="Paste an agent address (0x…)" autocomplete="off" spellcheck="false" />
-        <button id="searchBtn" class="search-btn">Search</button>
+  <div class="page">
+    <nav class="nav">
+      <div class="nav-brand">⚡ Ritual Agent Lookup</div>
+      <a href="https://x.com/Web3Julkar" target="_blank" rel="noopener" class="nav-twitter">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        @Web3Julkar
+      </a>
+    </nav>
+
+    <main class="main">
+      <div class="hero">
+        <h1 class="hero-title">Find Your Agent</h1>
+        <p class="hero-sub">Search any Ritual testnet agent — see its type, deployment time, and rank.</p>
       </div>
-      <div class="search-hint" id="searchHint">Try your agent address. First load builds a rank index (~20s, cached after).</div>
-    </div>
 
-    <div class="status-bar" id="statusBar" hidden>
-      <div class="status-track"><div class="status-fill" id="statusFill"></div></div>
-      <span class="status-text" id="statusText"></span>
-    </div>
+      <div class="search-zone">
+        <div class="search-box">
+          <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="searchInput" placeholder="Paste agent address  (0x…)" autocomplete="off" spellcheck="false" />
+          <button id="searchBtn">Search</button>
+        </div>
+        <div class="search-meta" id="searchMeta"></div>
+      </div>
 
-    <div class="result" id="result"></div>
+      <div class="progress" id="progress" hidden>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <span id="progressText"></span>
+      </div>
 
-    <div class="rank-status" id="rankStatus" hidden></div>
+      <div class="result-area" id="result"></div>
+
+      <div class="stats-row" id="statsRow" hidden>
+        <div class="stat-pill"><span class="stat-val" id="statTotal">—</span><span class="stat-lbl">Agents Ranked</span></div>
+        <div class="stat-pill"><span class="stat-val" id="statSov">—</span><span class="stat-lbl">Sovereign</span></div>
+        <div class="stat-pill"><span class="stat-val" id="statPers">—</span><span class="stat-lbl">Persistent</span></div>
+        <div class="stat-pill"><span class="stat-val" id="statUpdated">—</span><span class="stat-lbl">Data Updated</span></div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <span>Built by <a href="https://x.com/Web3Julkar" target="_blank" rel="noopener">@Web3Julkar</a></span>
+      <span class="footer-sep">·</span>
+      <span>Data: <a href="https://explorer.ritualfoundation.org/api/agents/cache" target="_blank" rel="noopener">Ritual Explorer</a></span>
+      <span class="footer-sep">·</span>
+      <span>Testnet only · Unofficial</span>
+    </footer>
   </div>
-
-  <footer class="footer">
-    <span>Data from <a href="https://explorer.ritualfoundation.org" target="_blank" rel="noopener">Ritual Explorer</a> + on-chain RPC. Unofficial, testnet only.</span>
-  </footer>
 
   <script src="app.js"></script>
 </body>
