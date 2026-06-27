@@ -122,9 +122,9 @@ function renderResult({ address, type, deployBlock, deployTs, rank, total, inInd
     <div class="bento">
       <div class="bento-card bento-rank">
         <div class="rank-left">
-          <div class="rank-label">Deployment Rank</div>
+          <div class="rank-label">Ritual Agent Status</div>
           <div class="rank-big">#${rankNum}</div>
-          <div class="rank-sub">of ${totalNum} agents on Ritual</div>
+          <div class="rank-sub">position ${rankNum} of ${totalNum} agents</div>
         </div>
         <div class="rank-right">
           <span class="type-chip ${chip}">${typeLabel}</span>
@@ -175,7 +175,7 @@ async function search(rawInput) {
   const indexed = state.byAddress[address];
   if (indexed && indexed.deployBlock) {
     renderResult({ address, type: indexed.type, deployBlock: indexed.deployBlock, deployTs: indexed.deployTs, rank: indexed.rank, total: state.deployData.totalAgents, inIndex: true });
-    $('searchNote').textContent = `Found — rank #${indexed.rank.toLocaleString()} of ${state.deployData.totalAgents.toLocaleString()}`;
+    $('searchNote').textContent = `Found — status #${indexed.rank.toLocaleString()} of ${state.deployData.totalAgents.toLocaleString()}`;
     $('searchBtn').disabled = false;
     return;
   }
@@ -198,7 +198,7 @@ async function search(rawInput) {
     rank += 1;
     const total = state.deployData.totalAgents + 1;
     renderResult({ address, type, deployBlock, deployTs, rank, total, inIndex: false });
-    $('searchNote').textContent = `Found on-chain — rank #${rank.toLocaleString()}`;
+    $('searchNote').textContent = `Found on-chain — status #${rank.toLocaleString()}`;
   } catch (e) {
     showError('Lookup failed: ' + e.message);
   } finally {
