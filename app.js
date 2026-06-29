@@ -38,7 +38,11 @@ async function loadData() {
     const cache = await cacheRes.json();
     for (const e of cache.sovereign || []) {
       const a = e.address.toLowerCase();
-      if (!state.byAddress[a]) state.byAddress[a] = { type: 'Sovereign', deployBlock: 0, deployTs: 0, rank: 0 };
+      if (!state.byAddress[a]) state.byAddress[a] = { type: 'Sovereign', deployBlock: 0, lastBlock: 0, deployTs: 0, rank: 0 };
+    }
+    for (const e of cache.persistent || []) {
+      const a = e.address.toLowerCase();
+      if (!state.byAddress[a]) state.byAddress[a] = { type: 'Persistent', deployBlock: 0, lastBlock: 0, deployTs: 0, rank: 0 };
     }
   }
 
@@ -53,7 +57,7 @@ async function loadData() {
   const ago = Math.round((Date.now() / 1000 - state.deployData.computedAt) / 60);
   $('statUpdated').textContent = ago < 60 ? ago + 'm' : Math.round(ago / 60) + 'h';
   $('statsGrid').hidden = false;
-  $('searchNote').textContent = `${state.deployData.totalAgents.toLocaleString()} agents indexed · auto-refresh every 10 min`;
+  $('searchNote').textContent = `${state.deployData.totalAgents.toLocaleString()} agents indexed`;
 }
 
 async function findDeployBlockOnChain(address, onProgress) {
@@ -112,11 +116,12 @@ function showError(msg) {
   $('result').innerHTML = `<div class="bento"><div class="bento-error">${msg}</div></div>`;
 }
 
-function renderResult({ address, type, deployBlock, deployTs, rank, total, inIndex }) {
+function renderResult({ address, type, deployBlock, lastBlock, deployTs, rank, total, inIndex }) {
   const chip = inIndex ? `chip-${type.toLowerCase()}` : 'chip-inactive';
   const typeLabel = inIndex ? type : type + ' (inactive)';
   const rankNum = rank ? rank.toLocaleString() : '—';
   const totalNum = total ? total.toLocaleString() : '—';
+  const blockNum = lastBlock || deployBlock || 0;
 
   $('result').innerHTML = `
     <div class="bento">
@@ -133,9 +138,9 @@ function renderResult({ address, type, deployBlock, deployTs, rank, total, inInd
       </div>
       <div class="bento-card bento-deploy">
         <div class="deploy-l">
-          <span class="deploy-lbl">Deployed At</span>
+          <span class="deploy-lbl">Last Block TXN</span>
           <span class="deploy-when">${fmtTime(deployTs)}</span>
-          <span class="deploy-block">block #${deployBlock.toLocaleString()}</span>
+          <span class="deploy-block">block #${blockNum.toLocaleString()}</span>
         </div>
         <div class="deploy-r"><span class="deploy-ago">${fmtAgo(deployTs) || 'just now'}</span></div>
       </div>
@@ -172,15 +177,54 @@ async function search(rawInput) {
   $('searchNote').classList.remove('error');
   $('meterBar').hidden = true;
 
+  // 1. Check local indexed data (fast path)
   const indexed = state.byAddress[address];
   if (indexed && indexed.deployBlock) {
-    renderResult({ address, type: indexed.type, deployBlock: indexed.deployBlock, deployTs: indexed.deployTs, rank: indexed.rank, total: state.deployData.totalAgents, inIndex: true });
+    renderResult({ address, type: indexed.type, deployBlock: indexed.deployBlock, lastBlock: indexed.lastBlock || 0, deployTs: indexed.deployTs, rank: indexed.rank, total: state.deployData.totalAgents, inIndex: true });
     $('searchNote').textContent = `Found — status #${indexed.rank.toLocaleString()} of ${state.deployData.totalAgents.toLocaleString()}`;
     $('searchBtn').disabled = false;
     return;
   }
 
-  showLoading('Agent not in index. Checking on-chain…');
+  // 2. Check live cache API for agents not yet in local index
+  showLoading('Checking live registry…');
+  try {
+    const cacheRes = await fetch(CONFIG.CACHE_API);
+    if (cacheRes.ok) {
+      const cache = await cacheRes.json();
+      const allSov = cache.sovereign || [];
+      const allPers = cache.persistent || [];
+
+      const sovAgent = allSov.find(e => e.address?.toLowerCase() === address);
+      const persAgent = allPers.find(e => e.address?.toLowerCase() === address);
+
+      if (sovAgent || persAgent) {
+        const agent = sovAgent || persAgent;
+        const type = sovAgent ? 'Sovereign' : 'Persistent';
+        const rank = sovAgent
+          ? allSov.findIndex(e => e.address?.toLowerCase() === address) + 1
+          : allSov.length + allPers.findIndex(e => e.address?.toLowerCase() === address) + 1;
+        const total = allSov.length + allPers.length;
+
+        renderResult({
+          address, type,
+          deployBlock: agent.deployBlock || 0,
+          lastBlock: agent.lastBlock || agent.deployBlock || 0,
+          deployTs: agent.deployTs || 0,
+          rank, total, inIndex: true,
+        });
+        $('searchNote').textContent = `Found in live registry — status #${rank.toLocaleString()} of ${total.toLocaleString()}`;
+        $('searchBtn').disabled = false;
+
+        // Update local state so next lookup is instant
+        state.byAddress[address] = { type, deployBlock: agent.deployBlock || 0, lastBlock: agent.lastBlock || 0, deployTs: agent.deployTs || 0, rank };
+        return;
+      }
+    }
+  } catch {}
+
+  // 3. Fall back to on-chain lookup
+  showLoading('Agent not in registry. Checking on-chain…');
   try {
     const type = await determineTypeOnChain(address);
     if (!type) { showError('No agent contract found at this address.'); return; }
@@ -197,7 +241,7 @@ async function search(rawInput) {
     for (const a of state.deployData.agents) if (a.deployBlock < deployBlock) rank++;
     rank += 1;
     const total = state.deployData.totalAgents + 1;
-    renderResult({ address, type, deployBlock, deployTs, rank, total, inIndex: false });
+    renderResult({ address, type, deployBlock, lastBlock: deployBlock, deployTs, rank, total, inIndex: false });
     $('searchNote').textContent = `Found on-chain — status #${rank.toLocaleString()}`;
   } catch (e) {
     showError('Lookup failed: ' + e.message);
