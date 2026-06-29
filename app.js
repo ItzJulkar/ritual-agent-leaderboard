@@ -34,30 +34,40 @@ async function loadData() {
   state.deployData = await depRes.json();
   for (const a of state.deployData.agents) state.byAddress[a.address.toLowerCase()] = a;
 
+  let liveSov = 0, livePers = 0;
+
   if (cacheRes && cacheRes.ok) {
     const cache = await cacheRes.json();
-    for (const e of cache.sovereign || []) {
+    const sovList = cache.sovereign || [];
+    const persList = cache.persistent || [];
+    liveSov = sovList.length;
+    livePers = persList.length;
+    for (const e of sovList) {
       const a = e.address.toLowerCase();
       if (!state.byAddress[a]) state.byAddress[a] = { type: 'Sovereign', deployBlock: 0, lastBlock: 0, deployTs: 0, rank: 0 };
     }
-    for (const e of cache.persistent || []) {
+    for (const e of persList) {
       const a = e.address.toLowerCase();
       if (!state.byAddress[a]) state.byAddress[a] = { type: 'Persistent', deployBlock: 0, lastBlock: 0, deployTs: 0, rank: 0 };
     }
   }
 
+  // Fallback to deploy-data counts if cache API failed
+  const dispSov = liveSov || Object.values(state.byAddress).filter(a => a.type === 'Sovereign').length;
+  const dispPers = livePers || Object.values(state.byAddress).filter(a => a.type === 'Persistent').length;
+  const dispTotal = (liveSov + livePers) || state.deployData.totalAgents;
+  state.liveTotal = dispTotal;
+
   try { state.currentBlock = parseInt(await rpcSingle('eth_blockNumber', []), 16); }
   catch { state.currentBlock = state.deployData.latestBlock || 0; }
 
-  const Sov = Object.values(state.byAddress).filter(a => a.type === 'Sovereign').length;
-  const Pers = Object.values(state.byAddress).filter(a => a.type === 'Persistent').length;
-  $('statTotal').textContent = state.deployData.totalAgents.toLocaleString();
-  $('statSov').textContent = Sov.toLocaleString();
-  $('statPers').textContent = Pers.toLocaleString();
+  $('statTotal').textContent = dispTotal.toLocaleString();
+  $('statSov').textContent = dispSov.toLocaleString();
+  $('statPers').textContent = dispPers.toLocaleString();
   const ago = Math.round((Date.now() / 1000 - state.deployData.computedAt) / 60);
   $('statUpdated').textContent = ago < 60 ? ago + 'm' : Math.round(ago / 60) + 'h';
   $('statsGrid').hidden = false;
-  $('searchNote').textContent = `${state.deployData.totalAgents.toLocaleString()} agents indexed`;
+  $('searchNote').textContent = `${dispTotal.toLocaleString()} agents indexed`;
 }
 
 async function findDeployBlockOnChain(address, onProgress) {
@@ -180,8 +190,9 @@ async function search(rawInput) {
   // 1. Check local indexed data (fast path)
   const indexed = state.byAddress[address];
   if (indexed && indexed.deployBlock) {
-    renderResult({ address, type: indexed.type, deployBlock: indexed.deployBlock, lastBlock: indexed.lastBlock || 0, deployTs: indexed.deployTs, rank: indexed.rank, total: state.deployData.totalAgents, inIndex: true });
-    $('searchNote').textContent = `Found — status #${indexed.rank.toLocaleString()} of ${state.deployData.totalAgents.toLocaleString()}`;
+    const liveTotal = state.liveTotal || state.deployData.totalAgents;
+    renderResult({ address, type: indexed.type, deployBlock: indexed.deployBlock, lastBlock: indexed.lastBlock || 0, deployTs: indexed.deployTs, rank: indexed.rank, total: liveTotal, inIndex: true });
+    $('searchNote').textContent = `Found — status #${indexed.rank.toLocaleString()} of ${liveTotal.toLocaleString()}`;
     $('searchBtn').disabled = false;
     return;
   }
